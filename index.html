@@ -3,244 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Dashboard</title>
-    <!-- Chart.js CDN -->
+    <title>Crypto Sentiment Intelligence | Trading Analytics Dashboard</title>
+    <meta name="description" content="Advanced crypto trading analytics dashboard exploring the relationship between trader performance and market sentiment using ML models.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-        }
-        body {
-            background: #f4f7fc;
-            margin: 0;
-            padding: 24px;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        h1 {
-            margin-top: 0;
-            color: #1e3c5c;
-        }
-        .card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 30px;
-            transition: 0.2s;
-        }
-        .card h2 {
-            margin-top: 0;
-            border-left: 5px solid #2c7da0;
-            padding-left: 15px;
-            color: #2c3e66;
-        }
-        .grid-2 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 24px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            text-align: left;
-            padding: 8px 12px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        th {
-            background-color: #eef2f5;
-            font-weight: 600;
-        }
-        .badge {
-            display: inline-block;
-            background: #2c7da0;
-            color: white;
-            border-radius: 40px;
-            padding: 4px 12px;
-            font-size: 0.85rem;
-        }
-        .positive {
-            color: #2e7d32;
-            font-weight: bold;
-        }
-        .negative {
-            color: #c62828;
-        }
-        canvas {
-            max-height: 400px;
-            width: 100%;
-        }
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-        @media (max-width: 700px) {
-            body { padding: 16px; }
-            .grid-2 { grid-template-columns: 1fr; }
-        }
-    </style>
+    <link rel="stylesheet" href="dashboard/styles.css">
 </head>
 <body>
-<div class="container">
-    <h1>📈 Trade & Sentiment Dashboard</h1>
-    <div class="card" id="loading">
-        <p>⏳ Loading analysis results...</p>
+    <!-- Ambient Background -->
+    <div class="ambient-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
     </div>
 
-    <div id="dashboard-content" style="display: none;">
-        <!-- Sentiment Performance Table -->
-        <div class="card">
-            <h2>📊 Sentiment Performance</h2>
-            <table id="sentiment-table">
-                <thead>
-                    <tr><th>Classification</th><th>Avg PnL</th><th>Win Rate</th><th>Trades</th><th>Avg Volume (USD)</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- Time Series + Model Accuracy -->
-        <div class="grid-2">
-            <div class="card">
-                <h2>📅 Cumulative PnL over time</h2>
-                <canvas id="pnlChart" width="400" height="300"></canvas>
-            </div>
-            <div class="card">
-                <h2>🤖 Model Performance</h2>
-                <div id="model-accuracy"></div>
-                <hr>
-                <p><span class="badge">Random Forest</span> predicting positive/negative trade outcome</p>
-                <p>Features: Fear & Greed Index + Trade Size</p>
-            </div>
-        </div>
-
-        <!-- Clustering Scatter Plot -->
-        <div class="card">
-            <h2>🧩 Account Clustering (PCA)</h2>
-            <canvas id="clusterChart" width="800" height="400" style="max-height: 500px;"></canvas>
-            <p style="font-size: 0.85rem; margin-top: 12px;">🔵 🔴 🟢 Each dot = one account, colored by cluster (KMeans).</p>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader-container">
+            <div class="pulse-ring"></div>
+            <div class="loader-text">Loading Intelligence...</div>
         </div>
     </div>
-    <footer>Auto-updated daily via GitHub Actions | Data from merged trades + Fear & Greed Index</footer>
-</div>
 
-<script>
-    let pnlChart, clusterChart;
+    <div class="container" id="dashboard" style="display:none;">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo-icon">⚡</div>
+                <div>
+                    <h1 id="main-heading">Crypto Sentiment Intelligence</h1>
+                    <p class="subtitle" id="date-range-text">Analyzing trader performance × market sentiment</p>
+                </div>
+            </div>
+            <div class="header-badges">
+                <span class="badge-live" id="badge-trades">—</span>
+                <span class="badge-live badge-accent" id="badge-accounts">—</span>
+            </div>
+        </header>
 
-    async function loadDashboard() {
-        try {
-            const response = await fetch('./dashboard/analysis_results.json');
-            if (!response.ok) throw new Error('JSON not found. Run analysis first.');
-            const data = await response.json();
+        <!-- KPI Row -->
+        <section class="kpi-row" id="kpi-section">
+            <div class="kpi-card" id="kpi-total-pnl">
+                <div class="kpi-label">Total PnL</div>
+                <div class="kpi-value" id="kpi-pnl-value">—</div>
+                <div class="kpi-sub" id="kpi-pnl-sub"></div>
+            </div>
+            <div class="kpi-card" id="kpi-win-rate">
+                <div class="kpi-label">Overall Win Rate</div>
+                <div class="kpi-value" id="kpi-wr-value">—</div>
+                <div class="kpi-sub">across all trades</div>
+            </div>
+            <div class="kpi-card" id="kpi-best-sent">
+                <div class="kpi-label">Best Sentiment</div>
+                <div class="kpi-value" id="kpi-sent-value">—</div>
+                <div class="kpi-sub" id="kpi-sent-sub"></div>
+            </div>
+            <div class="kpi-card" id="kpi-best-model">
+                <div class="kpi-label">Best ML Model</div>
+                <div class="kpi-value" id="kpi-model-value">—</div>
+                <div class="kpi-sub" id="kpi-model-sub"></div>
+            </div>
+        </section>
 
-            // hide loading, show dashboard
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dashboard-content').style.display = 'block';
+        <!-- Key Insight Banner -->
+        <section class="insight-banner" id="insight-banner">
+            <div class="insight-icon">💡</div>
+            <div class="insight-text" id="insight-text"></div>
+        </section>
 
-            // 1. Sentiment table
-            const sentPerf = data.sentiment_perf || [];
-            const tableBody = document.querySelector('#sentiment-table tbody');
-            tableBody.innerHTML = '';
-            sentPerf.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.classification ?? 'N/A'}</td>
-                    <td class="${row.avg_pnl > 0 ? 'positive' : 'negative'}">${row.avg_pnl?.toFixed(2) ?? '-'}</td>
-                    <td>${((row.win_rate || 0) * 100).toFixed(1)}%</td>
-                    <td>${row.trade_count ?? 0}</td>
-                    <td>$${row.avg_volume?.toLocaleString(undefined, {maximumFractionDigits:0}) ?? '-'}</td>
-                `;
-                tableBody.appendChild(tr);
-            });
+        <!-- Time Series Section -->
+        <section class="card full-width" id="timeseries-section">
+            <div class="card-header">
+                <h2>📈 Cumulative PnL & Sentiment Over Time</h2>
+            </div>
+            <div class="chart-container-large">
+                <canvas id="pnlChart"></canvas>
+            </div>
+        </section>
 
-            // 2. Model accuracy
-            const acc = data.model?.accuracy;
-            const modelDiv = document.getElementById('model-accuracy');
-            if (acc !== undefined) {
-                modelDiv.innerHTML = `<p style="font-size: 2rem; font-weight: bold;">${(acc * 100).toFixed(1)}% <span style="font-size:1rem;">accuracy</span></p>`;
-            } else {
-                modelDiv.innerHTML = '<p>⚠️ No model data available.</p>';
-            }
+        <!-- Sentiment Performance + Strategy Comparison -->
+        <section class="grid-2">
+            <div class="card" id="sentiment-card">
+                <div class="card-header"><h2>🌡️ Sentiment Performance Breakdown</h2></div>
+                <div class="sentiment-bars" id="sentiment-bars"></div>
+                <table class="data-table" id="sentiment-table">
+                    <thead>
+                        <tr><th>Sentiment</th><th>Avg PnL</th><th>Win Rate</th><th>Trades</th><th>Sharpe</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="card" id="strategy-card">
+                <div class="card-header"><h2>⚔️ Strategy Comparison</h2></div>
+                <div id="strategy-content"></div>
+                <div class="chart-container">
+                    <canvas id="strategyChart"></canvas>
+                </div>
+            </div>
+        </section>
 
-            // 3. Time series cumulative PnL
-            const ts = data.timeseries;
-            if (ts && ts.dates && ts.cumulative_pnl) {
-                const ctx = document.getElementById('pnlChart').getContext('2d');
-                if (pnlChart) pnlChart.destroy();
-                pnlChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ts.dates,
-                        datasets: [{
-                            label: 'Cumulative PnL',
-                            data: ts.cumulative_pnl,
-                            borderColor: '#2c7da0',
-                            backgroundColor: 'rgba(44,125,160,0.05)',
-                            fill: true,
-                            tension: 0.2,
-                            pointRadius: 0,
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: { legend: { position: 'top' } }
-                    }
-                });
-            } else {
-                document.getElementById('pnlChart').parentElement.innerHTML += '<p>No time series data.</p>';
-            }
+        <!-- Model Comparison + Feature Importance -->
+        <section class="grid-2">
+            <div class="card" id="model-card">
+                <div class="card-header"><h2>🤖 ML Model Comparison</h2></div>
+                <div id="model-comparison"></div>
+                <div class="chart-container">
+                    <canvas id="modelChart"></canvas>
+                </div>
+            </div>
+            <div class="card" id="feature-card">
+                <div class="card-header"><h2>🎯 Feature Importance</h2></div>
+                <p class="card-desc">What drives trade outcome prediction</p>
+                <div class="chart-container">
+                    <canvas id="featureChart"></canvas>
+                </div>
+                <div id="confusion-matrix"></div>
+            </div>
+        </section>
 
-            // 4. Clustering scatter (using PCA x,y)
-            const clusters = data.clustering || [];
-            if (clusters.length > 0) {
-                const clusterGroups = {0: [], 1: [], 2: []};
-                clusters.forEach(acc => {
-                    const cl = acc.cluster;
-                    if (clusterGroups[cl]) clusterGroups[cl].push({x: acc.x, y: acc.y, name: acc.Account});
-                    else clusterGroups[cl] = [{x: acc.x, y: acc.y, name: acc.Account}];
-                });
-                const colors = {0: '#3b82f6', 1: '#ef4444', 2: '#10b981'};
-                const datasets = Object.entries(clusterGroups).map(([cluster, points]) => ({
-                    label: `Cluster ${cluster}`,
-                    data: points.map(p => ({x: p.x, y: p.y})),
-                    backgroundColor: colors[cluster],
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    type: 'scatter'
-                }));
+        <!-- Clustering + Coin Performance -->
+        <section class="grid-2">
+            <div class="card" id="cluster-card">
+                <div class="card-header"><h2>🧩 Trader Clustering (PCA)</h2></div>
+                <div class="chart-container">
+                    <canvas id="clusterChart"></canvas>
+                </div>
+                <div id="cluster-profiles"></div>
+            </div>
+            <div class="card" id="coin-card">
+                <div class="card-header"><h2>🪙 Top Coins by Total PnL</h2></div>
+                <div class="chart-container">
+                    <canvas id="coinChart"></canvas>
+                </div>
+            </div>
+        </section>
 
-                const ctxCluster = document.getElementById('clusterChart').getContext('2d');
-                if (clusterChart) clusterChart.destroy();
-                clusterChart = new Chart(ctxCluster, {
-                    type: 'scatter',
-                    data: { datasets },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        scales: { x: { title: { display: true, text: 'PC1' } }, y: { title: { display: true, text: 'PC2' } } },
-                        plugins: { tooltip: { callbacks: { label: (ctx) => `Account: ${clusters.find(p => p.x === ctx.raw.x && p.y === ctx.raw.y)?.Account || ''}` } } }
-                    }
-                });
-            } else {
-                document.getElementById('clusterChart').parentElement.innerHTML += '<p>No clustering data.</p>';
-            }
+        <!-- Hourly Analysis + Top Accounts -->
+        <section class="grid-2">
+            <div class="card" id="hourly-card">
+                <div class="card-header"><h2>🕐 Hourly Trading Performance</h2></div>
+                <div class="chart-container">
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </div>
+            <div class="card" id="top-accounts-card">
+                <div class="card-header"><h2>🏆 Top Performing Accounts</h2></div>
+                <table class="data-table" id="top-accounts-table">
+                    <thead>
+                        <tr><th>Account</th><th>Total PnL</th><th>Win Rate</th><th>Trades</th><th>Sharpe</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div id="correlation-section">
+                    <h3 class="section-title">📊 Correlation Matrix</h3>
+                    <div class="chart-container-sm">
+                        <canvas id="corrChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-        } catch (err) {
-            document.getElementById('loading').innerHTML = `<div class="card" style="color:red;">❌ Error loading dashboard: ${err.message}<br>Make sure you have run the analysis script and <code>dashboard/analysis_results.json</code> exists.</div>`;
-            console.error(err);
-        }
-    }
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-line"></div>
+            <p>Crypto Sentiment Intelligence System • ML-Powered Trading Analytics • Data from merged trades + Fear & Greed Index</p>
+        </footer>
+    </div>
 
-    loadDashboard();
-</script>
+    <script src="dashboard/app.js"></script>
 </body>
 </html>
