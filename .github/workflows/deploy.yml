@@ -30,7 +30,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas numpy scikit-learn
 
-      - name: Run analysis script
+      - name: Run src/analysis script
         run: python analysis.py   # 👈 change to your script's filename
 
       - name: Setup Pages
