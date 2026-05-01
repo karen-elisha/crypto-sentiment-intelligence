@@ -1,246 +1,1522 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Dashboard</title>
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-        }
-        body {
-            background: #f4f7fc;
-            margin: 0;
-            padding: 24px;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        h1 {
-            margin-top: 0;
-            color: #1e3c5c;
-        }
-        .card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            padding: 20px;
-            margin-bottom: 30px;
-            transition: 0.2s;
-        }
-        .card h2 {
-            margin-top: 0;
-            border-left: 5px solid #2c7da0;
-            padding-left: 15px;
-            color: #2c3e66;
-        }
-        .grid-2 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 24px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            text-align: left;
-            padding: 8px 12px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        th {
-            background-color: #eef2f5;
-            font-weight: 600;
-        }
-        .badge {
-            display: inline-block;
-            background: #2c7da0;
-            color: white;
-            border-radius: 40px;
-            padding: 4px 12px;
-            font-size: 0.85rem;
-        }
-        .positive {
-            color: #2e7d32;
-            font-weight: bold;
-        }
-        .negative {
-            color: #c62828;
-        }
-        canvas {
-            max-height: 400px;
-            width: 100%;
-        }
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-        @media (max-width: 700px) {
-            body { padding: 16px; }
-            .grid-2 { grid-template-columns: 1fr; }
-        }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sentiment × Trader Intelligence Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0a0d14;
+  --surface: #111520;
+  --surface2: #161b28;
+  --border: #1e2736;
+  --accent: #00d4aa;
+  --accent2: #ff6b6b;
+  --accent3: #ffd166;
+  --accent4: #74b9ff;
+  --accent5: #a29bfe;
+  --text: #e8edf5;
+  --text-dim: #7a8799;
+  --text-muted: #3d4a5c;
+  --positive: #00d4aa;
+  --negative: #ff6b6b;
+  --neutral: #ffd166;
+  --extreme-greed: #00b894;
+  --greed: #55efc4;
+  --fear: #fdcb6e;
+  --extreme-fear: #e17055;
+  --font-mono: 'Space Mono', monospace;
+  --font-sans: 'DM Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+.header {
+  padding: 32px 40px 24px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(0,212,170,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--accent), var(--accent5));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.header h1 {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.header h1 span { color: var(--accent); }
+.header-sub {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+}
+.header-badge {
+  background: rgba(0,212,170,0.1);
+  border: 1px solid rgba(0,212,170,0.3);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 1px;
+}
+
+/* ── NAV TABS ── */
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 16px 40px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.nav-tab {
+  padding: 10px 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── MAIN LAYOUT ── */
+.main {
+  padding: 32px 40px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* ── TAB PANELS ── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── KPI GRID ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.kpi-card:hover { border-color: var(--accent); }
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  width: var(--bar, 0%);
+  background: var(--accent);
+  border-radius: 0 0 0 12px;
+  transition: width 1s ease;
+}
+.kpi-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+}
+.kpi-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text);
+  line-height: 1;
+}
+.kpi-value.pos { color: var(--positive); }
+.kpi-value.neg { color: var(--negative); }
+.kpi-sub {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+.kpi-icon {
+  position: absolute;
+  top: 16px; right: 16px;
+  font-size: 1.4rem;
+  opacity: 0.15;
+}
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 20px; height: 2px;
+  background: var(--accent);
+}
+
+/* ── CHART CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.card-title {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+.card-subtitle {
+  font-size: 0.73rem;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+.card-tag {
+  font-size: 0.67rem;
+  font-family: var(--font-mono);
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+}
+.tag-green { border-color: rgba(0,212,170,0.4); color: var(--accent); background: rgba(0,212,170,0.08); }
+.tag-blue { border-color: rgba(116,185,255,0.4); color: var(--accent4); background: rgba(116,185,255,0.08); }
+.tag-yellow { border-color: rgba(255,209,102,0.4); color: var(--accent3); background: rgba(255,209,102,0.08); }
+.tag-red { border-color: rgba(255,107,107,0.4); color: var(--accent2); background: rgba(255,107,107,0.08); }
+.tag-purple { border-color: rgba(162,155,254,0.4); color: var(--accent5); background: rgba(162,155,254,0.08); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.grid-3-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px; }
+
+canvas { width: 100% !important; }
+
+/* ── INSIGHT BOX ── */
+.insight-box {
+  background: rgba(0,212,170,0.05);
+  border: 1px solid rgba(0,212,170,0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-top: 16px;
+}
+.insight-box strong { color: var(--accent); }
+
+/* ── SENTIMENT TABLE ── */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.data-table td {
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  border-bottom: 1px solid rgba(30,39,54,0.5);
+  vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+.sentiment-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+.pill-ef { background: rgba(225,112,85,0.2); color: #e17055; }
+.pill-f { background: rgba(253,203,110,0.2); color: #fdcb6e; }
+.pill-n { background: rgba(122,135,153,0.2); color: #7a8799; }
+.pill-g { background: rgba(85,239,196,0.2); color: #55efc4; }
+.pill-eg { background: rgba(0,184,148,0.2); color: #00b894; }
+
+.pos-text { color: var(--positive); font-family: var(--font-mono); font-weight: 700; }
+.neg-text { color: var(--negative); font-family: var(--font-mono); font-weight: 700; }
+.mono { font-family: var(--font-mono); }
+
+/* ── CORRELATION MATRIX ── */
+.corr-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.corr-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+.corr-r {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 4px 0;
+}
+.corr-label { font-size: 0.72rem; color: var(--text-dim); }
+.corr-sig { font-size: 0.68rem; font-family: var(--font-mono); margin-top: 4px; }
+.sig { color: var(--accent); }
+.insig { color: var(--text-muted); }
+
+/* ── FEATURE IMPORTANCE BARS ── */
+.feat-bar-container { display: flex; flex-direction: column; gap: 10px; }
+.feat-bar-row { display: flex; align-items: center; gap: 12px; }
+.feat-name { font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-dim); width: 110px; text-align: right; flex-shrink: 0; }
+.feat-bar-bg { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.feat-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent4)); transition: width 1s ease; }
+.feat-pct { font-size: 0.72rem; font-family: var(--font-mono); color: var(--accent); width: 45px; }
+
+/* ── CLUSTER LEGEND ── */
+.cluster-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.cluster-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+
+/* ── ACCOUNT TABLE ── */
+.account-row td:first-child {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── STAT BLOCK ── */
+.stat-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.stat-item {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.stat-item-val {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.stat-item-label { font-size: 0.68rem; color: var(--text-dim); margin-top: 4px; }
+
+/* ── LOADING ── */
+#loading-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s;
+}
+.loader-icon {
+  font-size: 3rem;
+  animation: pulse 1.5s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.loader-text { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-dim); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+@media (max-width: 900px) {
+  .main { padding: 16px; }
+  .header { padding: 20px 16px; }
+  .nav-tabs { padding: 0 16px; }
+  .grid-2, .grid-3, .grid-3-1 { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
 </head>
 <body>
-<div class="container">
-    <h1>📈 Trade & Sentiment Dashboard</h1>
-    <div class="card" id="loading">
-        <p>⏳ Loading analysis results...</p>
-    </div>
 
-    <div id="dashboard-content" style="display: none;">
-        <!-- Sentiment Performance Table -->
-        <div class="card">
-            <h2>📊 Sentiment Performance</h2>
-            <table id="sentiment-table">
-                <thead>
-                    <tr><th>Classification</th><th>Avg PnL</th><th>Win Rate</th><th>Trades</th><th>Avg Volume (USD)</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- Time Series + Model Accuracy -->
-        <div class="grid-2">
-            <div class="card">
-                <h2>📅 Cumulative PnL over time</h2>
-                <canvas id="pnlChart" width="400" height="300"></canvas>
-            </div>
-            <div class="card">
-                <h2>🤖 Model Performance</h2>
-                <div id="model-accuracy"></div>
-                <hr>
-                <p><span class="badge">Random Forest</span> predicting positive/negative trade outcome</p>
-                <p>Features: Fear & Greed Index + Trade Size</p>
-            </div>
-        </div>
-
-        <!-- Clustering Scatter Plot -->
-        <div class="card">
-            <h2>🧩 Account Clustering (PCA)</h2>
-            <canvas id="clusterChart" width="800" height="400" style="max-height: 500px;"></canvas>
-            <p style="font-size: 0.85rem; margin-top: 12px;">🔵 🔴 🟢 Each dot = one account, colored by cluster (KMeans).</p>
-        </div>
-    </div>
-    <footer>Auto-updated daily via GitHub Actions | Data from merged trades + Fear & Greed Index</footer>
+<div id="loading-overlay">
+  <div class="loader-icon">📡</div>
+  <div class="loader-text">Loading intelligence data...</div>
 </div>
 
+<div class="header">
+  <div class="header-top">
+    <div class="header-logo">
+      <div class="logo-icon">📊</div>
+      <div>
+        <h1>Sentiment <span>×</span> Trader Intelligence</h1>
+        <div class="header-sub">Fear & Greed Index · 2024 · 104K trades · 32 accounts</div>
+      </div>
+    </div>
+    <span class="header-badge">LIVE ANALYSIS</span>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" data-tab="overview">Overview</div>
+  <div class="nav-tab" data-tab="sentiment">Sentiment Analysis</div>
+  <div class="nav-tab" data-tab="patterns">Temporal Patterns</div>
+  <div class="nav-tab" data-tab="ml">ML & Predictions</div>
+  <div class="nav-tab" data-tab="accounts">Account Clustering</div>
+  <div class="nav-tab" data-tab="coins">Coin Breakdown</div>
+</div>
+
+<div class="main">
+
+<!-- ════════════════════════════════════ OVERVIEW ════════════════════════════════════ -->
+<div class="tab-panel active" id="panel-overview">
+  <div class="section-title">Portfolio at a Glance</div>
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <div class="grid-3-1">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Cumulative PnL vs Fear & Greed Index</div>
+          <div class="card-subtitle">Full year 2024 · daily aggregated</div>
+        </div>
+        <span class="card-tag tag-green">DUAL AXIS</span>
+      </div>
+      <canvas id="pnlSentimentChart" height="180"></canvas>
+      <div class="insight-box">
+        📌 <strong>Insight:</strong> Watch how PnL velocity shifts during sentiment regime changes. Peaks in PnL accumulation often coincide with Extreme Fear zones — classic contrarian alpha.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Sentiment Distribution</div>
+          <div class="card-subtitle">Days spent per regime</div>
+        </div>
+        <span class="card-tag tag-yellow">2024</span>
+      </div>
+      <canvas id="sentimentPieChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Avg PnL per Sentiment Band</div>
+          <div class="card-subtitle">5-zone numeric Fear/Greed breakdown</div>
+        </div>
+        <span class="card-tag tag-blue">BANDS</span>
+      </div>
+      <canvas id="bandPnlChart" height="180"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Win Rate by Sentiment</div>
+          <div class="card-subtitle">Probability of a profitable trade</div>
+        </div>
+        <span class="card-tag tag-purple">WIN RATE</span>
+      </div>
+      <canvas id="winRateChart" height="180"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ SENTIMENT ════════════════════════════════════ -->
+<div class="tab-panel" id="panel-sentiment">
+  <div class="section-title">Sentiment vs Performance Relationships</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Sentiment Classification Performance Table</div>
+        <div class="card-subtitle">Avg PnL · Median PnL · Win Rate · Volume per regime</div>
+      </div>
+      <span class="card-tag tag-green">FULL BREAKDOWN</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" id="sentiment-table"></table>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Correlation Analysis</div>
+          <div class="card-subtitle">Pearson r: Sentiment vs Key Metrics</div>
+        </div>
+        <span class="card-tag tag-purple">STATS</span>
+      </div>
+      <div class="corr-grid" id="corr-grid"></div>
+      <div class="insight-box" id="corr-insight"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Daily PnL Distribution by Regime</div>
+          <div class="card-subtitle">Scatter: sentiment value vs daily profit</div>
+        </div>
+        <span class="card-tag tag-blue">SCATTER</span>
+      </div>
+      <canvas id="scatterPnlChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Long vs Short Ratio by Sentiment</div>
+          <div class="card-subtitle">Direction preference during each regime</div>
+        </div>
+        <span class="card-tag tag-yellow">DIRECTION</span>
+      </div>
+      <canvas id="directionChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Trade Volume by Sentiment</div>
+          <div class="card-subtitle">Average position size during each regime</div>
+        </div>
+        <span class="card-tag tag-red">VOLUME</span>
+      </div>
+      <canvas id="volumeChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ PATTERNS ════════════════════════════════════ -->
+<div class="tab-panel" id="panel-patterns">
+  <div class="section-title">Temporal & Behavioural Patterns</div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">PnL by Day of Week</div>
+          <div class="card-subtitle">Average profit per trade per weekday</div>
+        </div>
+        <span class="card-tag tag-green">DOW</span>
+      </div>
+      <canvas id="dowChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Win Rate by Day of Week</div>
+          <div class="card-subtitle">Trade success probability per weekday</div>
+        </div>
+        <span class="card-tag tag-blue">WIN RATE</span>
+      </div>
+      <canvas id="dowWrChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Trading Activity Heatmap — Hour of Day</div>
+        <div class="card-subtitle">Win rate × trade count across 24h</div>
+      </div>
+      <span class="card-tag tag-yellow">INTRADAY</span>
+    </div>
+    <canvas id="hourChart" height="140"></canvas>
+    <div class="insight-box" id="hour-insight"></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Monthly PnL Totals</div>
+          <div class="card-subtitle">Total profit per month across all accounts</div>
+        </div>
+        <span class="card-tag tag-green">MONTHLY</span>
+      </div>
+      <canvas id="monthChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Long vs Short PnL by Sentiment</div>
+          <div class="card-subtitle">Strategy effectiveness per market regime</div>
+        </div>
+        <span class="card-tag tag-red">DIRECTIONAL</span>
+      </div>
+      <canvas id="dirSentChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ ML ════════════════════════════════════ -->
+<div class="tab-panel" id="panel-ml">
+  <div class="section-title">Machine Learning Insights</div>
+
+  <div class="kpi-grid" id="ml-kpi-grid"></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Feature Importance — Gradient Boosting</div>
+          <div class="card-subtitle">What drives trade profitability prediction</div>
+        </div>
+        <span class="card-tag tag-green">GBM</span>
+      </div>
+      <div class="feat-bar-container" id="feat-importance"></div>
+      <div class="insight-box" id="feat-insight"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Predicted Win Probability vs Sentiment</div>
+          <div class="card-subtitle">Model output across Fear & Greed spectrum</div>
+        </div>
+        <span class="card-tag tag-blue">PREDICTIVE</span>
+      </div>
+      <canvas id="winCurveChart" height="240"></canvas>
+      <div class="insight-box" id="win-curve-insight"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Model Comparison</div>
+        <div class="card-subtitle">Random Forest (2 features) vs Gradient Boosting (6 features)</div>
+      </div>
+      <span class="card-tag tag-purple">BENCHMARKS</span>
+    </div>
+    <canvas id="modelCompareChart" height="120"></canvas>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ ACCOUNTS ════════════════════════════════════ -->
+<div class="tab-panel" id="panel-accounts">
+  <div class="section-title">Account Intelligence & Clustering</div>
+
+  <div class="grid-3-1">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Account Clusters — PCA Projection</div>
+          <div class="card-subtitle">KMeans (k=3) on win rate · avg PnL · trade count · position size · contrarian ratio</div>
+        </div>
+        <span class="card-tag tag-purple">PCA</span>
+      </div>
+      <div class="cluster-legend" id="cluster-legend"></div>
+      <canvas id="clusterChart" height="280"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Cluster Profiles</div>
+          <div class="card-subtitle">Avg metrics per archetype</div>
+        </div>
+      </div>
+      <div id="cluster-profiles"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Top Accounts — Performance Comparison</div>
+        <div class="card-subtitle">Fear preference · contrarian ratio · win rate</div>
+      </div>
+      <span class="card-tag tag-yellow">TOP 10</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" id="account-table"></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Fear vs Greed PnL by Account</div>
+        <div class="card-subtitle">How each account performs under different sentiment regimes</div>
+      </div>
+      <span class="card-tag tag-red">CONTRARIAN</span>
+    </div>
+    <canvas id="fearGreedBarChart" height="180"></canvas>
+    <div class="insight-box" id="fg-insight"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ COINS ════════════════════════════════════ -->
+<div class="tab-panel" id="panel-coins">
+  <div class="section-title">Coin-Level Performance Analysis</div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Top 15 Coins — Total PnL</div>
+          <div class="card-subtitle">Cumulative profit generated per asset</div>
+        </div>
+        <span class="card-tag tag-green">PNL</span>
+      </div>
+      <canvas id="coinPnlChart" height="260"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Top Coins — Win Rate vs Trade Count</div>
+          <div class="card-subtitle">Bubble size = trade volume</div>
+        </div>
+        <span class="card-tag tag-blue">SCATTER</span>
+      </div>
+      <canvas id="coinBubbleChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Top Coins Performance Table</div>
+        <div class="card-subtitle">Ranked by trade count</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" id="coin-table"></table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
 <script>
-    let pnlChart, clusterChart;
+// ── THEME & UTILS ──
+const C = {
+  bg: '#0a0d14', surface: '#111520', surface2: '#161b28', border: '#1e2736',
+  accent: '#00d4aa', accent2: '#ff6b6b', accent3: '#ffd166', accent4: '#74b9ff', accent5: '#a29bfe',
+  text: '#e8edf5', dim: '#7a8799',
+  ef: '#e17055', f: '#fdcb6e', n: '#7a8799', g: '#55efc4', eg: '#00b894',
+  clusters: ['#74b9ff','#ff6b6b','#a29bfe'],
+};
 
-    async function loadDashboard() {
-        try {
-            const response = await fetch('./dashboard/analysis_results.json');
-            if (!response.ok) throw new Error('JSON not found. Run analysis first.');
-            const data = await response.json();
+const sentColors = {
+  'Extreme Fear': C.ef,
+  'Fear': C.f,
+  'Neutral': C.n,
+  'Greed': C.g,
+  'Extreme Greed': C.eg
+};
 
-            // hide loading, show dashboard
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dashboard-content').style.display = 'block';
+const chartDefaults = {
+  color: C.text,
+  plugins: {
+    legend: { labels: { color: C.dim, font: { family: 'Space Mono', size: 11 }, boxWidth: 12, padding: 16 } }
+  },
+  scales: {
+    x: { ticks: { color: C.dim, font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(30,39,54,0.6)' }, border: { color: 'rgba(30,39,54,0.8)' } },
+    y: { ticks: { color: C.dim, font: { family: 'Space Mono', size: 10 } }, grid: { color: 'rgba(30,39,54,0.6)' }, border: { color: 'rgba(30,39,54,0.8)' } }
+  }
+};
 
-            // 1. Sentiment table
-            const sentPerf = data.sentiment_perf || [];
-            const tableBody = document.querySelector('#sentiment-table tbody');
-            tableBody.innerHTML = '';
-            sentPerf.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.classification ?? 'N/A'}</td>
-                    <td class="${row.avg_pnl > 0 ? 'positive' : 'negative'}">${row.avg_pnl?.toFixed(2) ?? '-'}</td>
-                    <td>${((row.win_rate || 0) * 100).toFixed(1)}%</td>
-                    <td>${row.trade_count ?? 0}</td>
-                    <td>$${row.avg_volume?.toLocaleString(undefined, {maximumFractionDigits:0}) ?? '-'}</td>
-                `;
-                tableBody.appendChild(tr);
-            });
+function fmt(v, d=0) {
+  if (v === null || v === undefined || isNaN(v)) return '-';
+  if (Math.abs(v) >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
+  if (Math.abs(v) >= 1e3) return '$' + (v/1e3).toFixed(1) + 'K';
+  return '$' + v.toFixed(d);
+}
+function pct(v) { return v !== null && !isNaN(v) ? (v*100).toFixed(1)+'%' : '-'; }
+function addr(a) { return a ? a.slice(0,6)+'…'+a.slice(-4) : '-'; }
 
-            // 2. Model accuracy
-            const acc = data.model?.accuracy;
-            const modelDiv = document.getElementById('model-accuracy');
-            if (acc !== undefined) {
-                modelDiv.innerHTML = `<p style="font-size: 2rem; font-weight: bold;">${(acc * 100).toFixed(1)}% <span style="font-size:1rem;">accuracy</span></p>`;
-            } else {
-                modelDiv.innerHTML = '<p>⚠️ No model data available.</p>';
-            }
+// ── NAV TABS ──
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
 
-            // 3. Time series cumulative PnL
-            const ts = data.timeseries;
-            if (ts && ts.dates && ts.cumulative_pnl) {
-                const ctx = document.getElementById('pnlChart').getContext('2d');
-                if (pnlChart) pnlChart.destroy();
-                pnlChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ts.dates,
-                        datasets: [{
-                            label: 'Cumulative PnL',
-                            data: ts.cumulative_pnl,
-                            borderColor: '#2c7da0',
-                            backgroundColor: 'rgba(44,125,160,0.05)',
-                            fill: true,
-                            tension: 0.2,
-                            pointRadius: 0,
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: { legend: { position: 'top' } }
-                    }
-                });
-            } else {
-                document.getElementById('pnlChart').parentElement.innerHTML += '<p>No time series data.</p>';
-            }
+// ── LOAD DATA ──
+async function init() {
+  let data;
+  try {
+    const r = await fetch('./analysis_results.json');
+    if (!r.ok) throw new Error('analysis_results.json not found. Run analysis.py first.');
+    data = await r.json();
+  } catch(e) {
+    document.getElementById('loading-overlay').innerHTML = `
+      <div style="text-align:center;padding:40px;max-width:500px;">
+        <div style="font-size:3rem;margin-bottom:16px;">❌</div>
+        <div style="font-family:Space Mono;font-size:0.85rem;color:#ff6b6b;">${e.message}</div>
+      </div>`;
+    return;
+  }
+  document.getElementById('loading-overlay').style.opacity = '0';
+  setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
 
-            // 4. Clustering scatter (using PCA x,y)
-            const clusters = data.clustering || [];
-            if (clusters.length > 0) {
-                const clusterGroups = {0: [], 1: [], 2: []};
-                clusters.forEach(acc => {
-                    const cl = acc.cluster;
-                    if (clusterGroups[cl]) clusterGroups[cl].push({x: acc.x, y: acc.y, name: acc.Account});
-                    else clusterGroups[cl] = [{x: acc.x, y: acc.y, name: acc.Account}];
-                });
-                const colors = {0: '#3b82f6', 1: '#ef4444', 2: '#10b981'};
-                const datasets = Object.entries(clusterGroups).map(([cluster, points]) => ({
-                    label: `Cluster ${cluster}`,
-                    data: points.map(p => ({x: p.x, y: p.y})),
-                    backgroundColor: colors[cluster],
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    type: 'scatter'
-                }));
+  buildKPIs(data);
+  buildOverviewCharts(data);
+  buildSentimentCharts(data);
+  buildPatternCharts(data);
+  buildMLCharts(data);
+  buildAccountCharts(data);
+  buildCoinCharts(data);
+}
 
-                const ctxCluster = document.getElementById('clusterChart').getContext('2d');
-                if (clusterChart) clusterChart.destroy();
-                clusterChart = new Chart(ctxCluster, {
-                    type: 'scatter',
-                    data: { datasets },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        scales: { x: { title: { display: true, text: 'PC1' } }, y: { title: { display: true, text: 'PC2' } } },
-                        plugins: { tooltip: { callbacks: { label: (ctx) => `Account: ${clusters.find(p => p.x === ctx.raw.x && p.y === ctx.raw.y)?.Account || ''}` } } }
-                    }
-                });
-            } else {
-                document.getElementById('clusterChart').parentElement.innerHTML += '<p>No clustering data.</p>';
-            }
+// ═══════════════════════════════ KPIs ═══════════════════════════════
+function buildKPIs(d) {
+  const s = d.summary;
+  const kpis = [
+    { label: 'Total PnL', value: fmt(s.total_pnl), cls: 'pos', sub: `${s.total_trades.toLocaleString()} trades`, icon: '💰' },
+    { label: 'Overall Win Rate', value: pct(s.overall_win_rate), cls: 'pos', sub: 'Across all accounts', icon: '🎯' },
+    { label: 'Avg PnL / Trade', value: fmt(s.avg_pnl_per_trade, 2), cls: 'pos', sub: 'Per closed position', icon: '📈' },
+    { label: 'Sharpe Ratio', value: s.sharpe_ratio.toFixed(2), cls: 'pos', sub: 'Annualised daily', icon: '⚡' },
+    { label: 'Best Trade', value: fmt(s.best_trade), cls: 'pos', sub: 'Single trade max', icon: '🚀' },
+    { label: 'Worst Trade', value: fmt(s.worst_trade), cls: 'neg', sub: 'Single trade loss', icon: '📉' },
+    { label: 'Avg Sentiment', value: s.avg_sentiment.toFixed(0), cls: '', sub: '0=Ext Fear · 100=Ext Greed', icon: '😐' },
+    { label: 'Active Accounts', value: s.unique_accounts, cls: '', sub: `${s.unique_coins} coins traded`, icon: '👥' },
+  ];
+  const grid = document.getElementById('kpi-grid');
+  grid.innerHTML = kpis.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value ${k.cls}">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
 
-        } catch (err) {
-            document.getElementById('loading').innerHTML = `<div class="card" style="color:red;">❌ Error loading dashboard: ${err.message}<br>Make sure you have run the analysis script and <code>dashboard/analysis_results.json</code> exists.</div>`;
-            console.error(err);
+// ═══════════════════════════════ OVERVIEW CHARTS ═══════════════════════════════
+function buildOverviewCharts(d) {
+  const ts = d.timeseries;
+
+  // Downsample for performance
+  const step = Math.max(1, Math.floor(ts.dates.length / 200));
+  const dates = ts.dates.filter((_,i) => i % step === 0);
+  const cumPnl = ts.cumulative_pnl.filter((_,i) => i % step === 0);
+  const sent = ts.sentiment_value.filter((_,i) => i % step === 0);
+  const cls = ts.classification.filter((_,i) => i % step === 0);
+
+  // PnL + Sentiment dual axis
+  new Chart(document.getElementById('pnlSentimentChart'), {
+    data: {
+      labels: dates,
+      datasets: [
+        {
+          type: 'line', label: 'Cumulative PnL',
+          data: cumPnl, yAxisID: 'y',
+          borderColor: C.accent, backgroundColor: 'rgba(0,212,170,0.08)',
+          fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2
+        },
+        {
+          type: 'line', label: 'Fear & Greed Index',
+          data: sent, yAxisID: 'y2',
+          borderColor: C.accent3, backgroundColor: 'transparent',
+          fill: false, tension: 0.4, pointRadius: 0, borderWidth: 1.5,
+          borderDash: [4, 2]
         }
+      ]
+    },
+    options: {
+      ...chartDefaults,
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        ...chartDefaults.plugins,
+        tooltip: {
+          backgroundColor: C.surface2,
+          titleColor: C.text, bodyColor: C.dim,
+          borderColor: C.border, borderWidth: 1,
+          callbacks: {
+            label: ctx => ctx.datasetIndex === 0
+              ? ' PnL: ' + fmt(ctx.raw)
+              : ' Sentiment: ' + ctx.raw.toFixed(0)
+          }
+        }
+      },
+      scales: {
+        x: { ...chartDefaults.scales.x, ticks: { ...chartDefaults.scales.x.ticks, maxTicksLimit: 8 } },
+        y: { ...chartDefaults.scales.y, position: 'left', ticks: { ...chartDefaults.scales.y.ticks, callback: v => fmt(v) } },
+        y2: { ...chartDefaults.scales.y, position: 'right', min: 0, max: 100, grid: { display: false }, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v } }
+      }
     }
+  });
 
-    loadDashboard();
+  // Sentiment pie — count classification days
+  const clsCounts = {};
+  ts.classification.forEach(c => { if(c) clsCounts[c] = (clsCounts[c]||0)+1; });
+  const pieOrder = ['Extreme Fear','Fear','Neutral','Greed','Extreme Greed'];
+  new Chart(document.getElementById('sentimentPieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: pieOrder.filter(k => clsCounts[k]),
+      datasets: [{
+        data: pieOrder.filter(k => clsCounts[k]).map(k => clsCounts[k]),
+        backgroundColor: pieOrder.filter(k => clsCounts[k]).map(k => sentColors[k]),
+        borderColor: C.bg, borderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { ...chartDefaults.plugins.legend, position: 'right' },
+        tooltip: {
+          backgroundColor: C.surface2, titleColor: C.text, bodyColor: C.dim,
+          callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} days` }
+        }
+      }
+    }
+  });
+
+  // Sentiment bands bar
+  const bands = d.correlation.sentiment_bands;
+  new Chart(document.getElementById('bandPnlChart'), {
+    type: 'bar',
+    data: {
+      labels: bands.map(b => b.sentiment_band.replace('\n', ' ')),
+      datasets: [{
+        label: 'Avg PnL ($)',
+        data: bands.map(b => b.avg_pnl),
+        backgroundColor: [C.ef, C.f, C.n, C.g, C.eg],
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      plugins: { ...chartDefaults.plugins, legend: { display: false } },
+      scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => fmt(v) } } }
+    }
+  });
+
+  // Win rate by classification
+  const sent_perf = d.sentiment_perf;
+  const sentOrder = ['Extreme Fear','Fear','Neutral','Greed','Extreme Greed'];
+  const orderedSent = sentOrder.map(s => sent_perf.find(r => r.classification === s)).filter(Boolean);
+  new Chart(document.getElementById('winRateChart'), {
+    type: 'bar',
+    data: {
+      labels: orderedSent.map(r => r.classification),
+      datasets: [{
+        label: 'Win Rate',
+        data: orderedSent.map(r => (r.win_rate * 100).toFixed(2)),
+        backgroundColor: orderedSent.map(r => sentColors[r.classification]),
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      plugins: { ...chartDefaults.plugins, legend: { display: false } },
+      scales: {
+        ...chartDefaults.scales,
+        y: { ...chartDefaults.scales.y, min: 70, max: 95, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v+'%' } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════ SENTIMENT CHARTS ═══════════════════════════════
+function buildSentimentCharts(d) {
+  const sentOrder = ['Extreme Fear','Fear','Neutral','Greed','Extreme Greed'];
+  const sp = d.sentiment_perf;
+  const ordered = sentOrder.map(s => sp.find(r => r.classification === s)).filter(Boolean);
+
+  // Table
+  const table = document.getElementById('sentiment-table');
+  const pillMap = { 'Extreme Fear': 'pill-ef', 'Fear': 'pill-f', 'Neutral': 'pill-n', 'Greed': 'pill-g', 'Extreme Greed': 'pill-eg' };
+  table.innerHTML = `
+    <thead><tr>
+      <th>Regime</th><th>Avg PnL</th><th>Median PnL</th><th>Win Rate</th><th>Trades</th><th>Avg Volume</th><th>Total PnL</th><th>Long %</th>
+    </tr></thead>
+    <tbody>${ordered.map(r => `<tr>
+      <td><span class="sentiment-pill ${pillMap[r.classification]}">${r.classification}</span></td>
+      <td class="${r.avg_pnl>0?'pos-text':'neg-text'}">${fmt(r.avg_pnl,2)}</td>
+      <td class="mono">${fmt(r.median_pnl,2)}</td>
+      <td class="mono">${pct(r.win_rate)}</td>
+      <td class="mono">${r.trade_count.toLocaleString()}</td>
+      <td class="mono">${fmt(r.avg_volume)}</td>
+      <td class="${r.total_pnl>0?'pos-text':'neg-text'}">${fmt(r.total_pnl)}</td>
+      <td class="mono">${pct(r.long_ratio)}</td>
+    </tr>`).join('')}</tbody>`;
+
+  // Correlation boxes
+  const corr = d.correlation;
+  const corrData = [
+    { label: 'Sentiment vs Daily PnL', r: corr.pnl_vs_sentiment.pearson_r, p: corr.pnl_vs_sentiment.p_value },
+    { label: 'Sentiment vs Win Rate', r: corr.winrate_vs_sentiment.pearson_r, p: corr.winrate_vs_sentiment.p_value },
+    { label: 'Sentiment vs Volume', r: corr.volume_vs_sentiment.pearson_r, p: corr.volume_vs_sentiment.p_value },
+  ];
+  const corrGrid = document.getElementById('corr-grid');
+  corrGrid.innerHTML = corrData.map(c => {
+    const color = Math.abs(c.r) > 0.3 ? C.accent : Math.abs(c.r) > 0.1 ? C.accent3 : C.dim;
+    const sig = c.p < 0.05;
+    return `<div class="corr-item">
+      <div class="corr-label">${c.label}</div>
+      <div class="corr-r" style="color:${color}">${c.r.toFixed(3)}</div>
+      <div class="corr-sig ${sig?'sig':'insig'}">p=${c.p.toFixed(3)} · ${sig?'✓ Significant':'✗ Not sig'}</div>
+    </div>`;
+  }).join('');
+
+  // Correlation insight
+  document.getElementById('corr-insight').innerHTML = `
+    📊 The Pearson r between sentiment and daily PnL is <strong>${corr.pnl_vs_sentiment.pearson_r.toFixed(3)}</strong> (p=${corr.pnl_vs_sentiment.p_value.toFixed(3)}).
+    ${corr.pnl_vs_sentiment.pearson_r < 0 ? '<strong>Traders perform better during fear</strong> — a classic contrarian signal.' : '<strong>Traders align with the trend</strong>, doing better during greed.'}
+    Win rate vs sentiment correlation: <strong>${corr.winrate_vs_sentiment.pearson_r.toFixed(3)}</strong>.`;
+
+  // Scatter: daily sentiment vs pnl
+  const ts = d.timeseries;
+  const scatterData = ts.dates.map((_,i) => ({
+    x: ts.sentiment_value[i],
+    y: ts.daily_pnl[i],
+    cls: ts.classification[i]
+  })).filter(p => p.x && p.y !== undefined);
+
+  const scatterDatasets = sentOrder.map(s => ({
+    label: s,
+    data: scatterData.filter(p => p.cls === s).map(p => ({x: p.x, y: p.y})),
+    backgroundColor: sentColors[s] + '99',
+    pointRadius: 4, type: 'scatter'
+  }));
+
+  new Chart(document.getElementById('scatterPnlChart'), {
+    type: 'scatter',
+    data: { datasets: scatterDatasets },
+    options: {
+      ...chartDefaults, responsive: true,
+      scales: {
+        x: { ...chartDefaults.scales.x, title: { display: true, text: 'Fear & Greed Index', color: C.dim } },
+        y: { ...chartDefaults.scales.y, title: { display: true, text: 'Daily PnL ($)', color: C.dim }, ticks: { ...chartDefaults.scales.y.ticks, callback: v => fmt(v) } }
+      }
+    }
+  });
+
+  // Direction chart
+  new Chart(document.getElementById('directionChart'), {
+    type: 'bar',
+    data: {
+      labels: ordered.map(r => r.classification),
+      datasets: [{
+        label: 'Long %',
+        data: ordered.map(r => (r.long_ratio * 100).toFixed(1)),
+        backgroundColor: C.accent4, borderRadius: 4, borderSkipped: false
+      }, {
+        label: 'Short %',
+        data: ordered.map(r => ((1 - r.long_ratio) * 100).toFixed(1)),
+        backgroundColor: C.accent2, borderRadius: 4, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      scales: {
+        x: { ...chartDefaults.scales.x, stacked: true },
+        y: { ...chartDefaults.scales.y, stacked: true, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v+'%' } }
+      }
+    }
+  });
+
+  // Volume chart
+  new Chart(document.getElementById('volumeChart'), {
+    type: 'bar',
+    data: {
+      labels: ordered.map(r => r.classification),
+      datasets: [{
+        label: 'Avg Position Size ($)',
+        data: ordered.map(r => r.avg_volume),
+        backgroundColor: ordered.map(r => sentColors[r.classification]),
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      plugins: { ...chartDefaults.plugins, legend: { display: false } },
+      scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => fmt(v) } } }
+    }
+  });
+}
+
+// ═══════════════════════════════ PATTERN CHARTS ═══════════════════════════════
+function buildPatternCharts(d) {
+  const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const dow = d.temporal.day_of_week.sort((a,b) => a.day_of_week - b.day_of_week);
+
+  new Chart(document.getElementById('dowChart'), {
+    type: 'bar',
+    data: {
+      labels: dow.map(r => dayNames[r.day_of_week]),
+      datasets: [{
+        label: 'Avg PnL ($)',
+        data: dow.map(r => r.avg_pnl),
+        backgroundColor: dow.map(r => r.avg_pnl > 0 ? C.accent + 'cc' : C.accent2 + 'cc'),
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      plugins: { ...chartDefaults.plugins, legend: { display: false } },
+      scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => fmt(v) } } }
+    }
+  });
+
+  new Chart(document.getElementById('dowWrChart'), {
+    type: 'line',
+    data: {
+      labels: dow.map(r => dayNames[r.day_of_week]),
+      datasets: [{
+        label: 'Win Rate',
+        data: dow.map(r => (r.win_rate * 100).toFixed(2)),
+        borderColor: C.accent5, backgroundColor: 'rgba(162,155,254,0.1)',
+        fill: true, tension: 0.4, pointRadius: 5, borderWidth: 2,
+        pointBackgroundColor: C.accent5
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 75, max: 90, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v+'%' } } }
+    }
+  });
+
+  // Hour chart
+  const hours = d.temporal.hour_of_day.sort((a,b) => a.hour - b.hour);
+  new Chart(document.getElementById('hourChart'), {
+    type: 'bar',
+    data: {
+      labels: hours.map(r => r.hour+'h'),
+      datasets: [{
+        label: 'Win Rate %',
+        data: hours.map(r => (r.win_rate * 100).toFixed(2)),
+        backgroundColor: hours.map(r => {
+          const wr = r.win_rate;
+          if (wr >= 0.87) return C.eg;
+          if (wr >= 0.84) return C.g;
+          if (wr >= 0.81) return C.n;
+          if (wr >= 0.78) return C.f;
+          return C.ef;
+        }),
+        borderRadius: 3, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      plugins: { ...chartDefaults.plugins, legend: { display: false } },
+      scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 70, max: 95, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v+'%' } } }
+    }
+  });
+
+  const bestHour = hours.reduce((a,b) => a.win_rate > b.win_rate ? a : b);
+  const worstHour = hours.reduce((a,b) => a.win_rate < b.win_rate ? a : b);
+  document.getElementById('hour-insight').innerHTML =
+    `⏰ Peak trading hour: <strong>${bestHour.hour}:00 (${pct(bestHour.win_rate)} win rate)</strong>. 
+     Worst hour: <strong>${worstHour.hour}:00 (${pct(worstHour.win_rate)} win rate)</strong>. 
+     Color scale: 🟢 High win rate → 🔴 Low win rate.`;
+
+  // Monthly
+  const months = d.temporal.monthly.sort((a,b) => a.month - b.month);
+  new Chart(document.getElementById('monthChart'), {
+    type: 'bar',
+    data: {
+      labels: months.map(r => r.month_name),
+      datasets: [{
+        label: 'Total PnL ($)',
+        data: months.map(r => r.total_pnl),
+        backgroundColor: months.map(r => r.total_pnl > 0 ? C.accent + 'bb' : C.accent2 + 'bb'),
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      plugins: { ...chartDefaults.plugins, legend: { display: false } },
+      scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => fmt(v) } } }
+    }
+  });
+
+  // Direction by sentiment
+  const dirSent = d.temporal.direction_by_sentiment;
+  const sentOrder = ['Extreme Fear','Fear','Neutral','Greed','Extreme Greed'];
+  const longs = sentOrder.map(s => dirSent.find(r => r.classification === s && r.direction === 'Long'));
+  const shorts = sentOrder.map(s => dirSent.find(r => r.classification === s && r.direction === 'Short/Other'));
+
+  new Chart(document.getElementById('dirSentChart'), {
+    type: 'bar',
+    data: {
+      labels: sentOrder,
+      datasets: [{
+        label: 'Long Avg PnL',
+        data: longs.map(r => r ? r.avg_pnl : 0),
+        backgroundColor: C.accent + 'cc', borderRadius: 4, borderSkipped: false
+      },{
+        label: 'Short Avg PnL',
+        data: shorts.map(r => r ? r.avg_pnl : 0),
+        backgroundColor: C.accent2 + 'cc', borderRadius: 4, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => fmt(v) } } }
+    }
+  });
+}
+
+// ═══════════════════════════════ ML CHARTS ═══════════════════════════════
+function buildMLCharts(d) {
+  const em = d.enhanced_model;
+  const m = d.model;
+
+  // ML KPIs
+  const mlKpis = [
+    { label: 'GBM Accuracy', value: pct(em.accuracy / 100), cls: 'pos', sub: '6-feature model', icon: '🤖' },
+    { label: 'AUC-ROC', value: em.auc_roc.toFixed(3), cls: 'pos', sub: 'Discrimination power', icon: '📐' },
+    { label: 'RF Accuracy', value: pct(m.accuracy / 100), cls: '', sub: '2-feature baseline', icon: '🌲' },
+    { label: 'Top Feature', value: em.feature_importance[0].feature.replace('_', ' '), cls: '', sub: `${(em.feature_importance[0].importance*100).toFixed(1)}% importance`, icon: '⭐' },
+  ];
+  document.getElementById('ml-kpi-grid').innerHTML = mlKpis.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value ${k.cls}">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+
+  // Feature importance bars
+  const feats = em.feature_importance;
+  const maxImp = feats[0].importance;
+  document.getElementById('feat-importance').innerHTML = feats.map(f => `
+    <div class="feat-bar-row">
+      <div class="feat-name">${f.feature.replace(/_/g,' ')}</div>
+      <div class="feat-bar-bg">
+        <div class="feat-bar-fill" style="width:${(f.importance/maxImp*100).toFixed(0)}%"></div>
+      </div>
+      <div class="feat-pct">${(f.importance*100).toFixed(1)}%</div>
+    </div>`).join('');
+
+  document.getElementById('feat-insight').innerHTML =
+    `🧠 <strong>Sentiment index</strong> is the #1 predictor of trade profitability at <strong>${(feats[0].importance*100).toFixed(1)}%</strong> importance.
+     Time features (hour, month) rank 2nd and 3rd — confirming that <strong>when</strong> you trade matters almost as much as <strong>what</strong> the market feels.`;
+
+  // Win probability curve
+  const curve = em.sentiment_win_curve;
+  new Chart(document.getElementById('winCurveChart'), {
+    type: 'line',
+    data: {
+      labels: curve.map(c => c.sentiment),
+      datasets: [{
+        label: 'Predicted Win Probability',
+        data: curve.map(c => (c.win_probability * 100).toFixed(2)),
+        borderColor: C.accent5, backgroundColor: 'rgba(162,155,254,0.1)',
+        fill: true, tension: 0.4, pointRadius: 5, borderWidth: 2,
+        pointBackgroundColor: curve.map(c => {
+          if (c.sentiment <= 20) return C.ef;
+          if (c.sentiment <= 40) return C.f;
+          if (c.sentiment <= 60) return C.n;
+          if (c.sentiment <= 80) return C.g;
+          return C.eg;
+        }),
+        pointBorderColor: 'transparent'
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      scales: {
+        x: { ...chartDefaults.scales.x, title: { display: true, text: 'Fear & Greed Index (0=Extreme Fear, 100=Extreme Greed)', color: C.dim } },
+        y: { ...chartDefaults.scales.y, min: 70, max: 100, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v+'%' } }
+      }
+    }
+  });
+
+  const bestZone = curve.reduce((a,b) => a.win_probability > b.win_probability ? a : b);
+  document.getElementById('win-curve-insight').innerHTML =
+    `🎯 The model predicts <strong>highest win probability (${pct(bestZone.win_probability)})</strong> when sentiment is at <strong>${bestZone.sentiment}</strong>.
+     This is the optimal sentiment zone for entering trades according to the Gradient Boosting model trained on all 6 features.`;
+
+  // Model comparison
+  new Chart(document.getElementById('modelCompareChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Random Forest\n(2 features)', 'Gradient Boosting\n(6 features)'],
+      datasets: [{
+        label: 'Accuracy',
+        data: [(m.accuracy*100).toFixed(2), (em.accuracy).toFixed(2)],
+        backgroundColor: [C.accent3 + 'aa', C.accent + 'aa'],
+        borderRadius: 8, borderSkipped: false
+      }, {
+        label: 'AUC-ROC (×100)',
+        data: [null, (em.auc_roc*100).toFixed(2)],
+        backgroundColor: [C.accent5 + 'aa', C.accent5 + 'aa'],
+        borderRadius: 8, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true, indexAxis: 'y',
+      scales: { x: { ...chartDefaults.scales.x, min: 80, max: 100, ticks: { ...chartDefaults.scales.x.ticks, callback: v => v+'%' } }, y: { ...chartDefaults.scales.y } }
+    }
+  });
+}
+
+// ═══════════════════════════════ ACCOUNT CHARTS ═══════════════════════════════
+function buildAccountCharts(d) {
+  const accounts = d.clustering.accounts;
+  const clusterSummary = d.clustering.summary;
+  const clusterColors = [C.clusters[0], C.clusters[1], C.clusters[2]];
+  const clusterLabels = ['Cluster 0', 'Cluster 1', 'Cluster 2'];
+
+  // Legend
+  document.getElementById('cluster-legend').innerHTML = clusterLabels.map((l,i) => `
+    <div class="cluster-legend-item">
+      <div class="legend-dot" style="background:${clusterColors[i]}"></div>
+      ${l} (${accounts.filter(a => a.cluster === i).length} accounts)
+    </div>`).join('');
+
+  // PCA Scatter
+  const datasets = [0,1,2].map(cl => ({
+    label: clusterLabels[cl],
+    data: accounts.filter(a => a.cluster === cl).map(a => ({x: a.x, y: a.y, acc: a.Account})),
+    backgroundColor: clusterColors[cl] + 'cc',
+    pointRadius: 8, pointHoverRadius: 10
+  }));
+  new Chart(document.getElementById('clusterChart'), {
+    type: 'scatter', data: { datasets },
+    options: {
+      ...chartDefaults, responsive: true,
+      plugins: {
+        ...chartDefaults.plugins,
+        tooltip: {
+          backgroundColor: C.surface2, titleColor: C.text, bodyColor: C.dim,
+          callbacks: {
+            label: ctx => {
+              const pt = ctx.raw;
+              const acc = accounts.find(a => Math.abs(a.x - pt.x) < 0.001);
+              return acc ? [` ${addr(acc.Account)}`, ` Win: ${pct(acc.win_rate)} | PnL: ${fmt(acc.total_pnl)}`] : '';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ...chartDefaults.scales.x, title: { display: true, text: 'PC1', color: C.dim } },
+        y: { ...chartDefaults.scales.y, title: { display: true, text: 'PC2', color: C.dim } }
+      }
+    }
+  });
+
+  // Cluster profiles
+  document.getElementById('cluster-profiles').innerHTML = clusterSummary.map((c,i) => `
+    <div style="margin-bottom:14px;padding:14px;background:var(--surface2);border-radius:10px;border-left:3px solid ${clusterColors[c.cluster]}">
+      <div style="font-size:0.75rem;font-weight:700;color:${clusterColors[c.cluster]};margin-bottom:8px;">
+        CLUSTER ${c.cluster} · ${c.count} account${c.count!==1?'s':''}
+      </div>
+      <div class="stat-block">
+        <div class="stat-item"><div class="stat-item-val ${c.avg_pnl>0?'pos-text':'neg-text'}">${fmt(c.avg_pnl,0)}</div><div class="stat-item-label">Avg PnL</div></div>
+        <div class="stat-item"><div class="stat-item-val">${pct(c.avg_win_rate)}</div><div class="stat-item-label">Win Rate</div></div>
+        <div class="stat-item"><div class="stat-item-val mono">${c.avg_trade_count.toFixed(0)}</div><div class="stat-item-label">Avg Trades</div></div>
+        <div class="stat-item"><div class="stat-item-val">${fmt(c.avg_size)}</div><div class="stat-item-label">Avg Size</div></div>
+      </div>
+    </div>`).join('');
+
+  // Account table (top 10)
+  const top10 = d.contrarian.top_accounts;
+  const table = document.getElementById('account-table');
+  table.innerHTML = `
+    <thead><tr>
+      <th>Address</th><th>Total PnL</th><th>Win Rate</th><th>Trades</th><th>Avg Size</th><th>Contrarian %</th><th>Cluster</th>
+    </tr></thead>
+    <tbody>${top10.map(a => `<tr class="account-row">
+      <td>${addr(a.Account)}</td>
+      <td class="${a.total_pnl>0?'pos-text':'neg-text'}">${fmt(a.total_pnl)}</td>
+      <td class="mono">${pct(a.win_rate)}</td>
+      <td class="mono">${a.trade_count.toLocaleString()}</td>
+      <td class="mono">${fmt(a.avg_size_usd)}</td>
+      <td class="mono" style="color:${a.contrarian_ratio>0.5?C.accent:C.dim}">${pct(a.contrarian_ratio)}</td>
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${clusterColors[a.cluster]};margin-right:6px"></span>${a.cluster}</td>
+    </tr>`).join('')}</tbody>`;
+
+  // Fear vs Greed per account (grouped bar)
+  const fgData = d.contrarian.fear_vs_greed
+    .filter(a => a.fear_trades > 5 || a.greed_trades > 5)
+    .sort((a,b) => (b.fear_pnl + b.greed_pnl) - (a.fear_pnl + a.greed_pnl))
+    .slice(0,12);
+
+  new Chart(document.getElementById('fearGreedBarChart'), {
+    type: 'bar',
+    data: {
+      labels: fgData.map(a => addr(a.Account)),
+      datasets: [
+        { label: 'Fear PnL', data: fgData.map(a => a.fear_pnl), backgroundColor: C.f + 'aa', borderRadius: 4, borderSkipped: false },
+        { label: 'Greed PnL', data: fgData.map(a => a.greed_pnl), backgroundColor: C.g + 'aa', borderRadius: 4, borderSkipped: false }
+      ]
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, callback: v => fmt(v) } } }
+    }
+  });
+
+  const fearWinners = fgData.filter(a => a.preference === 'Fear').length;
+  document.getElementById('fg-insight').innerHTML =
+    `😱 <strong>${fearWinners} of ${fgData.length} top accounts</strong> generate more PnL during Fear regimes than Greed regimes.
+     This reveals a powerful contrarian edge among the best performers — they buy fear and sell greed.`;
+}
+
+// ═══════════════════════════════ COIN CHARTS ═══════════════════════════════
+function buildCoinCharts(d) {
+  const coins = d.coins.top_coins.sort((a,b) => b.total_pnl - a.total_pnl);
+
+  // Bar chart — total PnL
+  const palette = [C.accent, C.accent4, C.accent5, C.accent3, C.accent2, C.g, C.f, C.eg, C.ef, C.n, C.accent, C.accent4, C.accent5, C.accent3, C.accent2];
+  new Chart(document.getElementById('coinPnlChart'), {
+    type: 'bar',
+    data: {
+      labels: coins.map(c => c.Coin),
+      datasets: [{
+        label: 'Total PnL ($)',
+        data: coins.map(c => c.total_pnl),
+        backgroundColor: palette.slice(0, coins.length).map(c => c + 'cc'),
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults, responsive: true, indexAxis: 'y',
+      plugins: { ...chartDefaults.plugins, legend: { display: false } },
+      scales: { ...chartDefaults.scales, x: { ...chartDefaults.scales.x, ticks: { ...chartDefaults.scales.x.ticks, callback: v => fmt(v) } } }
+    }
+  });
+
+  // Bubble chart — win rate vs avg pnl, size=count
+  const maxCount = Math.max(...coins.map(c => c.count));
+  new Chart(document.getElementById('coinBubbleChart'), {
+    type: 'bubble',
+    data: {
+      datasets: coins.map((c,i) => ({
+        label: c.Coin,
+        data: [{ x: c.win_rate * 100, y: c.avg_pnl, r: Math.max(4, (c.count / maxCount) * 30) }],
+        backgroundColor: palette[i] + 'aa', borderColor: palette[i]
+      }))
+    },
+    options: {
+      ...chartDefaults, responsive: true,
+      scales: {
+        x: { ...chartDefaults.scales.x, title: { display: true, text: 'Win Rate (%)', color: C.dim }, min: 70, max: 100 },
+        y: { ...chartDefaults.scales.y, title: { display: true, text: 'Avg PnL ($)', color: C.dim }, ticks: { ...chartDefaults.scales.y.ticks, callback: v => fmt(v) } }
+      },
+      plugins: {
+        ...chartDefaults.plugins,
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const c = coins[ctx.datasetIndex];
+              return [` ${c.Coin}`, ` Win: ${pct(c.win_rate)} | Avg: ${fmt(c.avg_pnl,1)} | ${c.count.toLocaleString()} trades`];
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Coin table
+  const table = document.getElementById('coin-table');
+  table.innerHTML = `
+    <thead><tr>
+      <th>#</th><th>Coin</th><th>Total PnL</th><th>Avg PnL</th><th>Win Rate</th><th>Trades</th>
+    </tr></thead>
+    <tbody>${coins.map((c,i) => `<tr>
+      <td class="mono" style="color:var(--text-muted)">${i+1}</td>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${palette[i]};margin-right:8px"></span><strong>${c.Coin}</strong></td>
+      <td class="${c.total_pnl>0?'pos-text':'neg-text'}">${fmt(c.total_pnl)}</td>
+      <td class="mono">${fmt(c.avg_pnl,2)}</td>
+      <td class="mono">${pct(c.win_rate)}</td>
+      <td class="mono">${c.count.toLocaleString()}</td>
+    </tr>`).join('')}</tbody>`;
+}
+
+init();
 </script>
 </body>
 </html>
