@@ -1,3 +1,5 @@
+import os
+import shutil
 import pandas as pd
 import numpy as np
 import json
@@ -9,10 +11,30 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score
 
 # =========================
+# CONFIGURATION: OUTPUT FOLDERS
+# =========================
+DATA_FOLDER = "data"
+DASHBOARD_FOLDER = "dashboard"
+
+# Ensure folders exist
+os.makedirs(DATA_FOLDER, exist_ok=True)
+os.makedirs(DASHBOARD_FOLDER, exist_ok=True)
+
+# Delete old output files (if any) in the data folder
+for file in os.listdir(DATA_FOLDER):
+    if file.endswith(".csv") and file in ["merged.csv", "daily_trades.csv", "sent_agg.csv", "acc_features.csv"]:
+        os.remove(os.path.join(DATA_FOLDER, file))
+
+# Delete old analysis_results.json in dashboard folder
+json_path = os.path.join(DASHBOARD_FOLDER, "analysis_results.json")
+if os.path.exists(json_path):
+    os.remove(json_path)
+
+# =========================
 # STEP 1: LOAD RAW FILES
 # =========================
-trades = pd.read_csv("data/historical_data.csv")
-sentiment = pd.read_csv("data/fear_greed_index.csv")
+trades = pd.read_csv(os.path.join(DATA_FOLDER, "historical_data.csv"))
+sentiment = pd.read_csv(os.path.join(DATA_FOLDER, "fear_greed_index.csv"))
 
 # =========================
 # STEP 2: CLEAN DATA
@@ -68,14 +90,14 @@ acc = merged.groupby('Account').agg(
 acc['contrarian_ratio'] = np.random.rand(len(acc))  # placeholder
 
 # =========================
-# SAVE DATASETS
+# SAVE DATASETS (IN data/ FOLDER)
 # =========================
-merged.to_csv("merged.csv", index=False)
-daily.to_csv("daily_trades.csv", index=False)
-sent_agg.to_csv("sent_agg.csv", index=False)
-acc.to_csv("acc_features.csv", index=False)
+merged.to_csv(os.path.join(DATA_FOLDER, "merged.csv"), index=False)
+daily.to_csv(os.path.join(DATA_FOLDER, "daily_trades.csv"), index=False)
+sent_agg.to_csv(os.path.join(DATA_FOLDER, "sent_agg.csv"), index=False)
+acc.to_csv(os.path.join(DATA_FOLDER, "acc_features.csv"), index=False)
 
-print("✅ 4 datasets generated")
+print("✅ 4 datasets generated and saved in 'data/' folder")
 
 # =========================
 # STEP 7: SIMPLE ANALYSIS
@@ -140,9 +162,9 @@ results['model'] = {
 }
 
 # =========================
-# SAVE JSON
+# SAVE JSON (IN dashboard/ FOLDER)
 # =========================
-with open("analysis_results.json","w") as f:
-    json.dump(results,f,indent=2)
+with open(os.path.join(DASHBOARD_FOLDER, "analysis_results.json"), "w") as f:
+    json.dump(results, f, indent=2)
 
-print("✅ analysis_results.json created")
+print("✅ analysis_results.json created in 'dashboard/' folder")

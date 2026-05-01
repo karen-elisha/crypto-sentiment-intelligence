@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Dashboard</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f4f7fc;
+            margin: 0;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            margin-top: 0;
+            color: #1e3c5c;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 30px;
+            transition: 0.2s;
+        }
+        .card h2 {
+            margin-top: 0;
+            border-left: 5px solid #2c7da0;
+            padding-left: 15px;
+            color: #2c3e66;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background-color: #eef2f5;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            background: #2c7da0;
+            color: white;
+            border-radius: 40px;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+        }
+        .positive {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        .negative {
+            color: #c62828;
+        }
+        canvas {
+            max-height: 400px;
+            width: 100%;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        @media (max-width: 700px) {
+            body { padding: 16px; }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📈 Trade & Sentiment Dashboard</h1>
+    <div class="card" id="loading">
+        <p>⏳ Loading analysis results...</p>
+    </div>
+
+    <div id="dashboard-content" style="display: none;">
+        <!-- Sentiment Performance Table -->
+        <div class="card">
+            <h2>📊 Sentiment Performance</h2>
+            <table id="sentiment-table">
+                <thead>
+                    <tr><th>Classification</th><th>Avg PnL</th><th>Win Rate</th><th>Trades</th><th>Avg Volume (USD)</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Time Series + Model Accuracy -->
+        <div class="grid-2">
+            <div class="card">
+                <h2>📅 Cumulative PnL over time</h2>
+                <canvas id="pnlChart" width="400" height="300"></canvas>
+            </div>
+            <div class="card">
+                <h2>🤖 Model Performance</h2>
+                <div id="model-accuracy"></div>
+                <hr>
+                <p><span class="badge">Random Forest</span> predicting positive/negative trade outcome</p>
+                <p>Features: Fear & Greed Index + Trade Size</p>
+            </div>
+        </div>
+
+        <!-- Clustering Scatter Plot -->
+        <div class="card">
+            <h2>🧩 Account Clustering (PCA)</h2>
+            <canvas id="clusterChart" width="800" height="400" style="max-height: 500px;"></canvas>
+            <p style="font-size: 0.85rem; margin-top: 12px;">🔵 🔴 🟢 Each dot = one account, colored by cluster (KMeans).</p>
+        </div>
+    </div>
+    <footer>Auto-updated daily via GitHub Actions | Data from merged trades + Fear & Greed Index</footer>
+</div>
+
+<script>
+    let pnlChart, clusterChart;
+
+    async function loadDashboard() {
+        try {
+            const response = await fetch('./dashboard/analysis_results.json');
+            if (!response.ok) throw new Error('JSON not found. Run analysis first.');
+            const data = await response.json();
+
+            // hide loading, show dashboard
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+
+            // 1. Sentiment table
+            const sentPerf = data.sentiment_perf || [];
+            const tableBody = document.querySelector('#sentiment-table tbody');
+            tableBody.innerHTML = '';
+            sentPerf.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.classification ?? 'N/A'}</td>
+                    <td class="${row.avg_pnl > 0 ? 'positive' : 'negative'}">${row.avg_pnl?.toFixed(2) ?? '-'}</td>
+                    <td>${((row.win_rate || 0) * 100).toFixed(1)}%</td>
+                    <td>${row.trade_count ?? 0}</td>
+                    <td>$${row.avg_volume?.toLocaleString(undefined, {maximumFractionDigits:0}) ?? '-'}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // 2. Model accuracy
+            const acc = data.model?.accuracy;
+            const modelDiv = document.getElementById('model-accuracy');
+            if (acc !== undefined) {
+                modelDiv.innerHTML = `<p style="font-size: 2rem; font-weight: bold;">${(acc * 100).toFixed(1)}% <span style="font-size:1rem;">accuracy</span></p>`;
+            } else {
+                modelDiv.innerHTML = '<p>⚠️ No model data available.</p>';
+            }
+
+            // 3. Time series cumulative PnL
+            const ts = data.timeseries;
+            if (ts && ts.dates && ts.cumulative_pnl) {
+                const ctx = document.getElementById('pnlChart').getContext('2d');
+                if (pnlChart) pnlChart.destroy();
+                pnlChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ts.dates,
+                        datasets: [{
+                            label: 'Cumulative PnL',
+                            data: ts.cumulative_pnl,
+                            borderColor: '#2c7da0',
+                            backgroundColor: 'rgba(44,125,160,0.05)',
+                            fill: true,
+                            tension: 0.2,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { position: 'top' } }
+                    }
+                });
+            } else {
+                document.getElementById('pnlChart').parentElement.innerHTML += '<p>No time series data.</p>';
+            }
+
+            // 4. Clustering scatter (using PCA x,y)
+            const clusters = data.clustering || [];
+            if (clusters.length > 0) {
+                const clusterGroups = {0: [], 1: [], 2: []};
+                clusters.forEach(acc => {
+                    const cl = acc.cluster;
+                    if (clusterGroups[cl]) clusterGroups[cl].push({x: acc.x, y: acc.y, name: acc.Account});
+                    else clusterGroups[cl] = [{x: acc.x, y: acc.y, name: acc.Account}];
+                });
+                const colors = {0: '#3b82f6', 1: '#ef4444', 2: '#10b981'};
+                const datasets = Object.entries(clusterGroups).map(([cluster, points]) => ({
+                    label: `Cluster ${cluster}`,
+                    data: points.map(p => ({x: p.x, y: p.y})),
+                    backgroundColor: colors[cluster],
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    type: 'scatter'
+                }));
+
+                const ctxCluster = document.getElementById('clusterChart').getContext('2d');
+                if (clusterChart) clusterChart.destroy();
+                clusterChart = new Chart(ctxCluster, {
+                    type: 'scatter',
+                    data: { datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: { x: { title: { display: true, text: 'PC1' } }, y: { title: { display: true, text: 'PC2' } } },
+                        plugins: { tooltip: { callbacks: { label: (ctx) => `Account: ${clusters.find(p => p.x === ctx.raw.x && p.y === ctx.raw.y)?.Account || ''}` } } }
+                    }
+                });
+            } else {
+                document.getElementById('clusterChart').parentElement.innerHTML += '<p>No clustering data.</p>';
+            }
+
+        } catch (err) {
+            document.getElementById('loading').innerHTML = `<div class="card" style="color:red;">❌ Error loading dashboard: ${err.message}<br>Make sure you have run the analysis script and <code>dashboard/analysis_results.json</code> exists.</div>`;
+            console.error(err);
+        }
+    }
+
+    loadDashboard();
+</script>
+</body>
+</html>
