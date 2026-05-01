@@ -31,7 +31,7 @@ jobs:
           pip install pandas numpy scikit-learn
 
       - name: Run src/analysis script
-        run: python analysis.py   # 👈 change to your script's filename
+        run: python src/analysis.py   # 👈 change to your script's filename
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
