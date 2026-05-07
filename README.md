@@ -5,6 +5,8 @@
 This project analyzes trading performance using market sentiment (Fear & Greed Index).
 It combines data processing, machine learning, and automated insights to identify optimal trading strategies.
 
+https://karen-elisha.github.io/crypto-sentiment-intelligence/
+
 ---
 
 ## 🧠 Key Features
